@@ -1,9 +1,10 @@
+use dotenv::dotenv;
 use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, HeaderValue};
-use std::io::{self, Write};
+use serde_json::from_str;
 use std::env;
+use std::io::{self, Write};
 use std::process::exit;
-use dotenv::dotenv;
 
 fn main() {
     // Load API keys as env variables
@@ -15,7 +16,7 @@ fn main() {
             exit(0);
         }
     };
-    
+
     println!("HEALTHCHECKS_API: {healthchecks_api}");
     println!("Welcome to WATcloud!");
 
@@ -27,7 +28,10 @@ fn main() {
         let client = Client::new();
 
         let mut header = HeaderMap::new();
-        header.append("X-Api-Key", HeaderValue::from_static(""));
+        header.append(
+            "X-Api-Key",
+            HeaderValue::from_str(&healthchecks_api).unwrap(),
+        );
 
         io::stdin()
             .read_line(&mut command)
@@ -43,7 +47,9 @@ fn main() {
                 .expect("Error in sending payload");
 
             let resp_text = resp.text().expect("Error in receiving info");
-            println!("{resp_text}");
+            // println!("{resp_text}");
+            let resp_json: serde_json::Value = from_str(&resp_text).unwrap();
+            println!("{resp_json}");
         } else if command == "exit" {
             exit(0);
         }
