@@ -5,6 +5,8 @@ use serde_json::from_str;
 use std::env;
 use std::io::{self, Write};
 use std::process::exit;
+extern crate regex;
+use regex::Regex;
 
 fn main() {
     // Load API keys as env variables
@@ -48,8 +50,41 @@ fn main() {
 
             let resp_text = resp.text().expect("Error in receiving info");
             // println!("{resp_text}");
-            let resp_json: serde_json::Value = from_str(&resp_text).unwrap();
-            println!("{resp_json}");
+            let mut resp_json: serde_json::Value = from_str(&resp_text).unwrap();
+            // println!("{resp_json}");
+
+            let resp_arr: Vec<serde_json::Value> = resp_json["checks"].as_array_mut().unwrap().clone();
+
+            // * TODO: For each check, add a new key called "host" which holds the value from "host=" from the "tags" key
+
+            // TODO: For each check, add a new key called "check" which holds the value from "check=" from the "tags" key
+
+            // TODO: Sort the checks using "host" key
+
+            // TODO: Print the sorted checks grouped by host
+
+            // TODO: Print the sorted checks grouped by check
+
+            // Adds host key to each check
+            let host_regex = Regex::new(r"host=[^\s]+").unwrap();
+
+            for mut i in resp_arr {
+                let instance_host;
+                match host_regex.find(i["tags"].as_str().unwrap()) {
+                    Some(mat) => {
+                        instance_host = mat.as_str().to_string().replace("host=", "");
+                    }
+                    None => {
+                        println!("No host found");
+                        continue;
+                    }
+                }
+                i.as_object_mut().unwrap().insert(
+                    "host".to_string(),
+                    serde_json::json!(format!("{}", instance_host)),
+                );
+                println!("{i}");
+            }
         } else if command == "exit" {
             exit(0);
         }
