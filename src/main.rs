@@ -25,7 +25,6 @@ fn main() {
     loop {
         print!("$ ");
         io::stdout().flush().unwrap();
-        // ? What does unwrap do?
         let mut command = String::new();
         let client = Client::new();
 
@@ -53,14 +52,14 @@ fn main() {
             let mut resp_json: serde_json::Value = from_str(&resp_text).unwrap();
             // println!("{resp_json}");
 
-            let resp_arr: Vec<serde_json::Value> =
+            let mut resp_arr: Vec<serde_json::Value> =
                 resp_json["checks"].as_array_mut().unwrap().clone();
 
             // * TODO: For each check, add a new key called "host" which holds the value from "host=" from the "tags" key
 
             // * TODO: For each check, add a new key called "check" which holds the value from "check=" from the "tags" key
 
-            // TODO: Sort the checks using "host" key
+            // * TODO: Sort the checks using "host" key
 
             // TODO: Print the sorted checks grouped by host
 
@@ -69,7 +68,7 @@ fn main() {
             // Adds host key to each check
             let host_regex = Regex::new(r"host=[^\s]+").unwrap();
 
-            for mut i in resp_arr {
+            for i in resp_arr.iter_mut() {
                 let instance_host;
                 match host_regex.find(i["tags"].as_str().unwrap()) {
                     Some(mat) => {
@@ -88,7 +87,7 @@ fn main() {
 
             // Adds check key to each check
             let check_regex = Regex::new(r"check=[^\s]+").unwrap();
-            for mut i in resp_arr {
+            for i in resp_arr.iter_mut() {
                 let instance_check;
                 match check_regex.find(i["tags"].as_str().unwrap()) {
                     Some(mat) => {
@@ -103,6 +102,14 @@ fn main() {
                     "check".to_string(),
                     serde_json::json!(format!("{}", instance_check)),
                 );
+            }
+
+            // Sort checks by host
+            resp_arr.sort_by_key(|k| k.get("host").unwrap().as_str().unwrap().to_string());
+
+            // Print checks by host
+            for i in resp_arr {
+                println!("{i}");
             }
         } else if command == "exit" {
             exit(0);
