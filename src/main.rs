@@ -53,11 +53,12 @@ fn main() {
             let mut resp_json: serde_json::Value = from_str(&resp_text).unwrap();
             // println!("{resp_json}");
 
-            let resp_arr: Vec<serde_json::Value> = resp_json["checks"].as_array_mut().unwrap().clone();
+            let resp_arr: Vec<serde_json::Value> =
+                resp_json["checks"].as_array_mut().unwrap().clone();
 
             // * TODO: For each check, add a new key called "host" which holds the value from "host=" from the "tags" key
 
-            // TODO: For each check, add a new key called "check" which holds the value from "check=" from the "tags" key
+            // * TODO: For each check, add a new key called "check" which holds the value from "check=" from the "tags" key
 
             // TODO: Sort the checks using "host" key
 
@@ -83,7 +84,25 @@ fn main() {
                     "host".to_string(),
                     serde_json::json!(format!("{}", instance_host)),
                 );
-                println!("{i}");
+            }
+
+            // Adds check key to each check
+            let check_regex = Regex::new(r"check=[^\s]+").unwrap();
+            for mut i in resp_arr {
+                let instance_check;
+                match check_regex.find(i["tags"].as_str().unwrap()) {
+                    Some(mat) => {
+                        instance_check = mat.as_str().to_string().replace("check=", "");
+                    }
+                    None => {
+                        println!("No check found");
+                        continue;
+                    }
+                }
+                i.as_object_mut().unwrap().insert(
+                    "check".to_string(),
+                    serde_json::json!(format!("{}", instance_check)),
+                );
             }
         } else if command == "exit" {
             exit(0);
