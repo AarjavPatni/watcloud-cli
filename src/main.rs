@@ -1,7 +1,8 @@
 use dotenv::dotenv;
 use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, HeaderValue};
-use serde_json::from_str;
+use serde_json::{from_str, Map};
+use std::collections::HashMap;
 use std::env;
 use std::io::{self, Write};
 use std::process::exit;
@@ -52,7 +53,7 @@ fn main() {
             let mut resp_json: serde_json::Value = from_str(&resp_text).unwrap();
             // println!("{resp_json}");
 
-            let mut resp_arr: Vec<serde_json::Value> =
+            let mut checks_arr: Vec<serde_json::Value> =
                 resp_json["checks"].as_array_mut().unwrap().clone();
 
             // * TODO: For each check, add a new key called "host" which holds the value from "host=" from the "tags" key
@@ -68,7 +69,7 @@ fn main() {
             // Adds host key to each check
             let host_regex = Regex::new(r"host=[^\s]+").unwrap();
 
-            for i in resp_arr.iter_mut() {
+            for i in checks_arr.iter_mut() {
                 let instance_host;
                 match host_regex.find(i["tags"].as_str().unwrap()) {
                     Some(mat) => {
@@ -87,7 +88,7 @@ fn main() {
 
             // Adds check key to each check
             let check_regex = Regex::new(r"check=[^\s]+").unwrap();
-            for i in resp_arr.iter_mut() {
+            for i in checks_arr.iter_mut() {
                 let instance_check;
                 match check_regex.find(i["tags"].as_str().unwrap()) {
                     Some(mat) => {
@@ -105,14 +106,44 @@ fn main() {
             }
 
             // Sort checks by host
-            resp_arr.sort_by_key(|k| k.get("host").unwrap().as_str().unwrap().to_string());
+            checks_arr.sort_by_key(|k| k.get("host").unwrap().as_str().unwrap().to_string());
 
-            // Print checks by host
-            for i in resp_arr {
-                println!("{i}");
+            // Print checks grouped by host
+            let mut cluster_by_host = std::collections::HashMap::new();
+            for i in checks_arr.iter() {
+                let host = i.get("host").unwrap().as_str().unwrap().to_string();
+                cluster_by_host
+                    .entry(host)
+                    .or_insert_with(|| Vec::new())
+                    .push(i.clone());
+            }
+
+            for (host, machines) in &cluster_by_host {
+                // print the host and then each check for that host
+                println!("{}", host);
+                for machine in machines.iter() {
+                    let checks: HashMap<String, serde_json::Value> = serde_json::to_value(&machine)
+                        .expect("Failed to convert to Hash Map")
+                        .as_object()
+                        .expect("Value is not an object")
+                        .clone()
+                        .into_iter()
+                        .collect();
+
+                    println!("{}", checks.get("name").unwrap());
+
+                    for (key, value) in &checks {
+                        if key == "name" {
+                            continue;
+                        }
+                        println!("{:}: {}", key, value);
+                    }
+                    println!("\n");
+                }
+                println!("\n");
             }
         } else if command == "exit" {
-            exit(0);
+            std::process::exit(0);
         }
     }
 }
