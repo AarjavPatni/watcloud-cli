@@ -11,7 +11,7 @@ WATcloud CLI is a command-line interface tool written in Rust, designed to simpl
 -  **Daemon Status**: Monitor the status of user daemons such as Docker rootless. -->
 
 ## Milestones
--  [ ] `status` – Quickly check the status of the WATcloud cluster, including which nodes are up or down and whether any nodes are under maintenance
+-  [x] `status` – Quickly check the status of the WATcloud cluster, including which nodes are up or down and whether any nodes are under maintenance.
 -  [ ] `quota list` – View your disk, CPU, and memory usage quotas.
 -  [ ] `daemon status` – Monitor the status of user daemons such as Docker rootless.
 
